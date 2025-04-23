@@ -6,24 +6,39 @@ const app = express();
 // Import the built-in Node.js file system module
 const fs = require('fs');
 
+// ADD USER
 var user = {
-    "user4" : {
-       "name" : "mohit",
-       "password" : "password4",
-       "profession" : "teacher",
-       "id": 4
-    }
- }
- 
- app.post('/addUser', function (req, res) {
-    // First read existing users.
-    fs.readFile( __dirname + "/" + "users.json", 'utf8', function (err, data) {
-       data = JSON.parse( data );
-       data["user4"] = user["user4"];
-       console.log( data );
-       res.end( JSON.stringify(data));
-    });
- })
+   "user4" : {
+      "name" : "mohit",
+      "password" : "password4",
+      "profession" : "teacher",
+      "id": 4
+   }
+}
+
+app.post('/addUser', function (req, res) {
+const filePath = __dirname + "/users.json";
+
+fs.readFile(filePath, 'utf8', function (err, data) {
+   if (err) {
+      console.error("Read error:", err);
+      return res.status(500).send("Failed to read file");
+   }
+
+   let users = JSON.parse(data);
+   users["user4"] = user["user4"];
+
+fs.writeFile(filePath, JSON.stringify(users, null, 2), function (err) {
+   if (err) {
+      console.error("Write error:", err);
+      return res.status(500).send("Failed to write file");
+   }
+   
+   console.log("✅ File written successfully!"); // <-- Add this
+   res.json(users);
+   });
+});
+});
 
 // Define a route handler for GET requests to '/listUsers'
 app.get('/listUsers', function (req, res) {
@@ -39,6 +54,48 @@ app.get('/listUsers', function (req, res) {
       console.log(data);
       // Send the content of users.json as the response
       res.send(data);
+   });
+});
+
+// FETCH
+app.get('/:id', function (req, res) {
+   // First read existing users.
+   fs.readFile( __dirname + "/" + "users.json", 'utf8', function (err, data) {
+      var users = JSON.parse( data );
+      var user = users["user" + req.params.id]
+      console.log( user );
+      res.end( JSON.stringify(user));
+   });
+})
+
+// DELETE USER
+app.delete('/deleteUser/:id', function (req, res) {
+   const userId = req.params.id;
+
+   fs.readFile(__dirname + "/users.json", 'utf8', function (err, data) {
+      if (err) {
+         console.error("Error reading file:", err);
+         return res.status(500).send("Server Error");
+      }
+
+      const users = JSON.parse(data);
+
+      if (!users["user" + userId]) {
+         return res.status(404).send("User not found");
+      }
+
+      delete users["user" + userId];
+
+      // Save the updated data back to file
+      fs.writeFile(__dirname + "/users.json", JSON.stringify(users, null, 2), function (err) {
+         if (err) {
+            console.error("Write error:", err);
+            return res.status(500).send("Failed to write file");
+         }
+
+         console.log("Deleted user" + userId);
+         res.end(JSON.stringify(users));
+      });
    });
 });
 
